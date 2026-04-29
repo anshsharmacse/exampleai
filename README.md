@@ -1638,7 +1638,7 @@ SOFTWARE.
 
 <div align="center">
 
-<h3>Made with by</h3>
+<h3>Made with by ❤️ </h3>
 
 **ANSH SHARMA**
 <br/>
