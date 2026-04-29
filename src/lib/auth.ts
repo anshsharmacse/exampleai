@@ -10,62 +10,35 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
-        name: { label: "Name", type: "text" },
-        action: { label: "Action", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email) return null;
+        if (!credentials?.email || !credentials?.password) return null;
 
-        const action = credentials.action || "login";
-
-        if (action === "register") {
-          // Register new user
-          if (!credentials.password || !credentials.name) return null;
-
-          const existingUser = await db.user.findUnique({
-            where: { email: credentials.email },
+        try {
+          const user = await db.user.findUnique({
+            where: { email: credentials.email.toLowerCase() },
           });
 
-          if (existingUser) return null;
+          if (!user || !user.password) return null;
 
-          const hashedPassword = await bcrypt.hash(credentials.password, 12);
-          const user = await db.user.create({
-            data: {
-              email: credentials.email,
-              name: credentials.name,
-              password: hashedPassword,
-              plan: "free",
-              credits: 0,
-            },
-          });
+          const isValid = await bcrypt.compare(credentials.password, user.password);
+          if (!isValid) return null;
 
           return {
             id: user.id,
             email: user.email,
             name: user.name,
           };
+        } catch (error) {
+          console.error("Auth authorize error:", error);
+          return null;
         }
-
-        // Login
-        const user = await db.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user || !user.password) return null;
-
-        const isValid = await bcrypt.compare(credentials.password, user.password);
-        if (!isValid) return null;
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
       },
     }),
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   callbacks: {
     async jwt({ token, user }) {
