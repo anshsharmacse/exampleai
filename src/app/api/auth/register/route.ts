@@ -15,11 +15,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
 
+    // Check if user already exists
     const existingUser = await db.user.findUnique({ where: { email: email.toLowerCase() } });
     if (existingUser) {
       return NextResponse.json({ error: "Email already registered. Please sign in." }, { status: 409 });
     }
 
+    // Hash password and create user
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await db.user.create({
       data: {
@@ -35,10 +37,10 @@ export async function POST(request: NextRequest) {
       success: true,
       user: { id: user.id, email: user.email, name: user.name },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error);
     return NextResponse.json(
-      { error: "Registration failed. Please try again." },
+      { error: "Registration failed: " + (error?.message || String(error)) },
       { status: 500 }
     );
   }
