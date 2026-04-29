@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=file:/app/db/custom.db
+    restart: unless-stopped
