@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { signOut } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { useAppStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -46,9 +46,28 @@ function AuthScreen() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setError(""); setLoading(true);
     try {
-      const res = await fetch("/api/auth/callback/credentials", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ email, password, name: isLogin ? "" : name, action: isLogin ? "login" : "register", csrfToken: "" }) });
-      if (res.ok) { const d = await fetch("/api/user").then((r) => r.json()); if (d.user) setAuth(d.user); } else setError(isLogin ? "Invalid credentials" : "Registration failed");
-    } catch { setError("Something went wrong"); } finally { setLoading(false); }
+      if (!isLogin) {
+        // Register: create account first, then login
+        const regRes = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password, name }),
+        });
+        const regData = await regRes.json();
+        if (!regRes.ok) { setError(regData.error || "Registration failed"); setLoading(false); return; }
+      }
+      // Login via NextAuth
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (result?.error) { setError("Invalid email or password"); }
+      else {
+        const d = await fetch("/api/user").then((r) => r.json());
+        if (d.user) setAuth(d.user); else setError("Login succeeded but session failed");
+      }
+    } catch { setError("Something went wrong. Check your connection."); } finally { setLoading(false); }
   };
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative">
