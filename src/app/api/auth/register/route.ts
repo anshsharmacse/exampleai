@@ -15,13 +15,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
 
-    // Check if user already exists
     const existingUser = await db.user.findUnique({ where: { email: email.toLowerCase() } });
     if (existingUser) {
       return NextResponse.json({ error: "Email already registered. Please sign in." }, { status: 409 });
     }
 
-    // Hash password and create user
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = await db.user.create({
       data: {
